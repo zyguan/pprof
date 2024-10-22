@@ -317,15 +317,7 @@ func (pm *profileMerger) mapLocation(src *Location) *Location {
 
 // key generates locationKey to be used as a key for maps.
 func (l *Location) key() locationKey {
-	key := locationKey{
-		addr:     l.Address,
-		isFolded: l.IsFolded,
-	}
-	if l.Mapping != nil {
-		// Normalizes address to handle address space randomization.
-		key.addr -= l.Mapping.Start
-		key.mappingID = l.Mapping.ID
-	}
+	key := locationKey{}
 	lines := make([]string, len(l.Line)*3)
 	for i, line := range l.Line {
 		if line.Function != nil {
@@ -385,21 +377,9 @@ func (pm *profileMerger) mapMapping(src *Mapping) mapInfo {
 // key generates encoded strings of Mapping to be used as a key for
 // maps.
 func (m *Mapping) key() mappingKey {
-	// Normalize addresses to handle address space randomization.
-	// Round up to next 4K boundary to avoid minor discrepancies.
-	const mapsizeRounding = 0x1000
-
-	size := m.Limit - m.Start
-	size = size + mapsizeRounding - 1
-	size = size - (size % mapsizeRounding)
-	key := mappingKey{
-		size:   size,
-		offset: m.Offset,
-	}
+	key := mappingKey{}
 
 	switch {
-	case m.BuildID != "":
-		key.buildIDOrFile = m.BuildID
 	case m.File != "":
 		key.buildIDOrFile = m.File
 	default:
@@ -418,8 +398,6 @@ type mappingKey struct {
 func (pm *profileMerger) mapLine(src Line) Line {
 	ln := Line{
 		Function: pm.mapFunction(src.Function),
-		Line:     src.Line,
-		Column:   src.Column,
 	}
 	return ln
 }
@@ -452,10 +430,10 @@ func (pm *profileMerger) mapFunction(src *Function) *Function {
 // key generates a struct to be used as a key for maps.
 func (f *Function) key() functionKey {
 	return functionKey{
-		f.StartLine,
+		0,
 		f.Name,
 		f.SystemName,
-		f.Filename,
+		"",
 	}
 }
 
